@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clavion — Secure Runtime for Autonomous Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ── VARIABLES ── */
+  :root {
+    --bg-deep: #050505;
+    --bg-elevated: #0a0a0a;
+    --bg-terminal: #0c0c0c;
+    --border-subtle: #1a1a1a;
+    --border-accent: rgba(0, 255, 157, 0.3);
+    --text-primary: #e0e0e0;
+    --text-secondary: #999;
+    --text-muted: #555;
+    --accent: #00ff9d;
+    --accent-dim: #00cc7d;
+    --accent-dark: #00995e;
+    --accent-glow: rgba(0, 255, 157, 0.08);
+    --red: #ff4444;
+    --yellow: #ffcc00;
+    --cyan: #00d4ff;
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    --font-display: 'Space Grotesk', -apple-system, sans-serif;
+    --font-body: 'Space Grotesk', -apple-system, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: #000;
+  }
+
+  /* ── STARS & NEBULA BACKGROUNDS (from OpenClaw) ── */
+  .stars {
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,.8), transparent),
+      radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,.5), transparent),
+      radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,.6), transparent),
+      radial-gradient(2px 2px at 130px 80px, rgba(255,255,255,.4), transparent),
+      radial-gradient(1px 1px at 160px 120px, rgba(255,255,255,.7), transparent),
+      radial-gradient(2px 2px at 200px 60px, rgba(0,255,157,.6), transparent),
+      radial-gradient(1px 1px at 250px 150px, rgba(255,255,255,.5), transparent),
+      radial-gradient(2px 2px at 300px 40px, rgba(0,212,255,.4), transparent);
+    background-size: 350px 200px;
+    animation: twinkle 8s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes twinkle {
+    0% { opacity: .4; }
+    100% { opacity: .7; }
+  }
+
+  .nebula {
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 20%, rgba(0,255,157,.08), transparent 50%),
+      radial-gradient(ellipse 60% 60% at 80% 30%, rgba(0,212,255,.06), transparent 50%),
+      radial-gradient(ellipse 90% 70% at 50% 90%, rgba(0,255,157,.04), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── CONTAINER ── */
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 60px 24px 40px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .claw-accent {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    text-align: center;
+    margin-bottom: 56px;
+    animation: fadeInUp .8s ease-out;
+  }
+
+  @keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── ANIMATED LOGO ── */
+  .logo-stage {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .logo-stage svg {
+    width: 160px;
+    height: 160px;
+    transition: filter 0.4s ease;
+    filter: drop-shadow(0 0 20px rgba(0, 255, 157, 0.15));
+  }
+
+  .logo-stage:hover svg {
+    filter: drop-shadow(0 0 40px rgba(0, 255, 157, 0.4));
+  }
+
+  .logo-float {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  /* Outer brackets — slow breathing */
+  .bracket-outer {
+    animation: breatheOuter 4s ease-in-out infinite;
+    transform-origin: center center;
+  }
+
+  @keyframes breatheOuter {
+    0%, 100% { opacity: 0.18; transform: scaleX(1); }
+    50% { opacity: 0.3; transform: scaleX(1.03); }
+  }
+
+  /* Mid brackets — offset breathing */
+  .bracket-mid {
+    animation: breatheMid 4s ease-in-out infinite 0.3s;
+    transform-origin: center center;
+  }
+
+  @keyframes breatheMid {
+    0%, 100% { opacity: 0.45; transform: scaleX(1); }
+    50% { opacity: 0.65; transform: scaleX(1.02); }
+  }
+
+  /* Inner brackets — subtle pulse */
+  .bracket-inner {
+    animation: breatheInner 4s ease-in-out infinite 0.6s;
+    transform-origin: center center;
+  }
+
+  @keyframes breatheInner {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 1; }
+  }
+
+  /* Core dot — glow pulse */
+  .core-dot {
+    animation: corePulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes corePulse {
+    0%, 100% { r: 3; filter: drop-shadow(0 0 0 transparent); }
+    50% { r: 3.8; filter: drop-shadow(0 0 8px rgba(0, 255, 157, 0.8)); }
+  }
+
+  /* Hover: brackets expand outward */
+  .logo-stage:hover .bracket-outer {
+    animation: expandOuter 0.6s ease forwards;
+  }
+
+  .logo-stage:hover .bracket-mid {
+    animation: expandMid 0.6s ease forwards 0.05s;
+  }
+
+  .logo-stage:hover .bracket-inner {
+    animation: expandInner 0.6s ease forwards 0.1s;
+  }
+
+  .logo-stage:hover .core-dot {
+    animation: coreFlare 0.6s ease forwards;
+  }
+
+  @keyframes expandOuter {
+    0% { transform: scaleX(1); opacity: 0.2; }
+    50% { transform: scaleX(1.12); opacity: 0.5; }
+    100% { transform: scaleX(1.06); opacity: 0.35; }
+  }
+
+  @keyframes expandMid {
+    0% { transform: scaleX(1); opacity: 0.45; }
+    50% { transform: scaleX(1.08); opacity: 0.75; }
+    100% { transform: scaleX(1.04); opacity: 0.6; }
+  }
+
+  @keyframes expandInner {
+    0% { transform: scaleX(1); opacity: 0.9; }
+    50% { transform: scaleX(1.04); opacity: 1; }
+    100% { transform: scaleX(1.02); opacity: 1; }
+  }
+
+  @keyframes coreFlare {
+    0% { r: 3; }
+    40% { r: 5; }
+    100% { r: 3.5; }
+  }
+
+  /* Scan line effect on hover */
+  .scan-line {
+    position: absolute;
+    width: 130px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    pointer-events: none;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .logo-stage:hover .scan-line {
+    animation: scanPass 1.2s ease-out forwards;
+  }
+
+  @keyframes scanPass {
+    0% { top: 20%; opacity: 0; }
+    20% { opacity: 0.6; }
+    100% { top: 80%; opacity: 0; }
+  }
+
+  /* Click ripple ring */
+  .ripple-ring {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .ripple-ring.animate {
+    animation: rippleOut 0.8s ease-out forwards;
+  }
+
+  @keyframes rippleOut {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.8; }
+    100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+  }
+
+  /* Shield flash on click */
+  .shield-flash {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(0,255,157,0.15), transparent 70%);
+    opacity: 0;
+    pointer-events: none;
+    border-radius: 50%;
+  }
+
+  .shield-flash.animate {
+    animation: shieldPulse 0.6s ease-out forwards;
+  }
+
+  @keyframes shieldPulse {
+    0% { opacity: 0.6; transform: scale(0.8); }
+    100% { opacity: 0; transform: scale(1.3); }
+  }
+
+  /* Status text after click */
+  .status-text {
+    position: absolute;
+    bottom: -8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--accent);
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .status-text.animate {
+    animation: statusShow 1.5s ease-out forwards;
+  }
+
+  @keyframes statusShow {
+    0% { opacity: 0; transform: translateY(0); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(12px); }
+  }
+
+  .title {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 10vw, 4.5rem);
+    font-weight: 700;
+    letter-spacing: -.03em;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+
+  .title-main {
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 50%, var(--cyan) 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 6s ease infinite;
+  }
+
+  @keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .tagline {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    animation: fadeInUp .8s ease-out .15s both;
+  }
+
+  .description {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    max-width: 680px;
+    margin: 0 auto;
+    line-height: 1.7;
+    animation: fadeInUp .8s ease-out .3s both;
+  }
+
+  .description strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .alpha-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+    padding: 6px 16px;
+    border-radius: 100px;
+    border: 1px solid rgba(0, 255, 157, 0.2);
+    background: rgba(0, 255, 157, 0.04);
+    font-family: var(--font-mono);
+    font-size: .8rem;
+    color: var(--accent);
+    letter-spacing: .5px;
+    animation: fadeInUp .8s ease-out .4s both;
+  }
+
+  .alpha-icon {
+    font-size: 1rem;
+  }
+
+  /* ── LATEST POST / BADGE ── */
+  .latest-post {
+    margin-bottom: 40px;
+    animation: fadeInUp .8s ease-out .5s both;
+    text-align: center;
+  }
+
+  .latest-post-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    border-radius: 50px;
+    background: rgba(10, 10, 10, .8);
+    border: 1px solid var(--border-subtle);
+    text-decoration: none;
+    transition: all .3s ease;
+    color: var(--text-primary);
+  }
+
+  .latest-post-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 20px rgba(0,255,157,.15);
+  }
+
+  .latest-post-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #000;
+    font-size: .7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  .latest-post-title {
+    font-size: .9rem;
+    color: var(--text-primary);
+  }
+
+  .latest-post-link {
+    color: var(--text-muted);
+    transition: color .2s;
+  }
+
+  .latest-post-card:hover .latest-post-link {
+    color: var(--accent);
+  }
+
+  /* ── CTA GRID ── */
+  .cta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 56px;
+    animation: fadeInUp .8s ease-out .45s both;
+  }
+
+  @media (min-width: 640px) {
+    .cta-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(10,15,26,.6);
+    backdrop-filter: blur(12px);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all .25s cubic-bezier(.4,0,.2,1);
+  }
+
+  .cta:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-accent);
+    box-shadow: 0 12px 40px rgba(0,255,157,.1), inset 0 1px rgba(255,255,255,.05);
+  }
+
+  .cta-icon {
+    width: 28px;
+    height: 28px;
+    color: var(--accent);
+    transition: transform .25s ease;
+  }
+
+  .cta:hover .cta-icon {
+    transform: scale(1.1);
+  }
+
+  .cta-discord:hover {
+    border-color: #5865f2;
+    box-shadow: 0 12px 40px rgba(88,101,242,.2);
+  }
+
+  .cta-discord:hover .cta-icon { color: #5865f2; }
+
+  .cta-docs:hover {
+    border-color: var(--cyan);
+    box-shadow: 0 12px 40px rgba(0,212,255,.15);
+  }
+
+  .cta-docs:hover .cta-icon { color: var(--cyan); }
+
+  .cta-github:hover {
+    border-color: #f0f4ff;
+    box-shadow: 0 12px 40px rgba(240,244,255,.1);
+  }
+
+  .cta-github:hover .cta-icon { color: #f0f4ff; }
+
+  .cta-label {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .cta-sub {
+    font-size: .8rem;
+    color: var(--text-muted);
+  }
+
+  /* ── TRUST BANNER / TESTIMONIALS (auto-scrolling rows) ── */
+  .testimonials {
+    margin-bottom: 56px;
+    animation: fadeInUp .8s ease-out .75s both;
+    overflow: hidden;
+    margin-left: -24px;
+    margin-right: -24px;
+    padding: 0 24px;
+  }
+
+  .testimonials .section-header {
+    padding: 0 24px;
+  }
+
+  .testimonials-track {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-left: -24px;
+    margin-right: -24px;
+    overflow: hidden;
+    mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  }
+
+  .testimonials-row {
+    display: flex;
+    gap: 16px;
+    width: max-content;
+    padding: 8px 0;
+  }
+
+  .testimonials-row:hover {
+    animation-play-state: paused;
+  }
+
+  .testimonials-track:focus-within .testimonials-row {
+    animation-play-state: paused;
+  }
+
+  .row-1 { animation: scroll-left 60s linear infinite; }
+  .row-2 { animation: scroll-right 70s linear infinite; }
+
+  @keyframes scroll-left {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  @keyframes scroll-right {
+    0% { transform: translateX(-50%); }
+    100% { transform: translateX(0); }
+  }
+
+  .testimonial-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    min-width: 320px;
+    max-width: 400px;
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(10,15,26,.7);
+    backdrop-filter: blur(8px);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all .25s cubic-bezier(.4,0,.2,1);
+    flex-shrink: 0;
+  }
+
+  .testimonial-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,255,157,.12);
+  }
+
+  .testimonial-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  .testimonial-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .testimonial-title {
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .testimonial-desc {
+    font-size: .85rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  .verify-intro {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: .95rem;
+    max-width: 560px;
+    margin: 0 auto 24px;
+    line-height: 1.7;
+  }
+
+  .verify-outro {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: .85rem;
+    font-style: italic;
+    max-width: 480px;
+    margin: 24px auto 0;
+    line-height: 1.6;
+  }
+
+  /* ── QUICK START TERMINAL ── */
+  .quickstart {
+    margin-bottom: 56px;
+    animation: fadeInUp .8s ease-out .6s both;
+  }
+
+  .code-block {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(0,0,0,.3);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .code-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+
+  .code-dot:nth-child(1) { background: #ff5f57; }
+  .code-dot:nth-child(2) { background: #febc2e; }
+  .code-dot:nth-child(3) { background: #28c840; }
+
+  .code-title {
+    margin-left: auto;
+    font-size: .75rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  .code-content {
+    padding: 16px 20px;
+    font-family: var(--font-mono);
+    font-size: .9rem;
+    line-height: 1.6;
+  }
+
+  .code-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+  }
+
+  .code-line.comment {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .code-line.cmd {
+    color: var(--text-primary);
+  }
+
+  .code-prompt {
+    color: var(--accent);
+    user-select: none;
+  }
+
+  .code-flag { color: var(--cyan); }
+
+  .copy-line-btn {
+    opacity: .6;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255,255,255,.1);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all .2s ease;
+    flex-shrink: 0;
+  }
+
+  .code-line:hover .copy-line-btn { opacity: 1; }
+
+  .copy-line-btn:hover {
+    background: rgba(255,255,255,.2);
+    color: var(--text-primary);
+  }
+
+  .copy-line-btn.copied {
+    opacity: 1;
+    background: rgba(0,255,157,.2);
+    color: var(--accent);
+  }
+
+  .copy-line-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .quickstart-note {
+    margin-top: 16px;
+    font-size: .9rem;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  /* ── PROBLEM SECTION ── */
+  .problem-section {
+    margin-bottom: 56px;
+    animation: fadeInUp .8s ease-out .55s both;
+  }
+
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+
+  .problem-text h3 {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 16px;
+    line-height: 1.3;
+  }
+
+  .problem-text p {
+    color: var(--text-secondary);
+    font-size: .95rem;
+    line-height: 1.8;
+    margin-bottom: 12px;
+  }
+
+  .threat-list {
+    list-style: none;
+    margin-top: 20px;
+  }
+
+  .threat-list li {
+    font-family: var(--font-mono);
+    font-size: .85rem;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+
+  .threat-list li::before {
+    content: '✗ ';
+    color: var(--red);
+  }
+
+  .problem-visual {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 28px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+
+  .problem-visual .vis-title {
+    color: var(--red);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+  }
+
+  .unsafe-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .unsafe-flow .node {
+    padding: 10px 14px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    background: #111;
+    text-align: center;
+    color: var(--text-primary);
+  }
+
+  .unsafe-flow .node.danger {
+    border-color: rgba(255,68,68,.3);
+    background: rgba(255,68,68,.05);
+    color: var(--red);
+  }
+
+  .unsafe-flow .arrow {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 16px;
+  }
+
+  .unsafe-flow .warning-box {
+    margin-top: 12px;
+    padding: 10px;
+    border: 1px dashed rgba(255,68,68,.3);
+    border-radius: 8px;
+    color: var(--red);
+    text-align: center;
+    font-size: 12px;
+  }
+
+  /* ── SOLUTION: THREE TRUST DOMAINS ── */
+  .solution-section {
+    margin-bottom: 56px;
+    animation: fadeInUp .8s ease-out .6s both;
+  }
+
+  .solution-intro {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 40px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .domains {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 0;
+    align-items: stretch;
+  }
+
+  .domain {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 24px;
+    transition: all .25s cubic-bezier(.4,0,.2,1);
+  }
+
+  .domain:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent-dim);
+    box-shadow: 0 12px 40px var(--accent-glow);
+  }
+
+  .domain-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  .domain-label.untrusted { color: var(--red); }
+  .domain-label.secure { color: var(--accent); }
+  .domain-label.external { color: var(--cyan); }
+
+  .domain h3 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .domain p {
+    font-size: .85rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .domain-connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 20px;
+    color: var(--text-muted);
+    padding: 0 8px;
+  }
+
+  /* ── PIPELINE ── */
+  .pipeline-section {
+    margin-bottom: 56px;
+    animation: fadeInUp .8s ease-out .65s both;
+  }
+
+  .pipeline-steps {
+    display: flex;
+    gap: 0;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .pipeline-step {
+    flex: 1;
+    min-width: 140px;
+    text-align: center;
+    position: relative;
+    padding: 24px 12px;
+  }
+
+  .pipeline-step .num {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    position: relative;
+    z-index: 1;
+    background: var(--bg-deep);
+  }
+
+  .pipeline-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 43px;
+    left: calc(50% + 24px);
+    width: calc(100% - 48px);
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--border-subtle));
+    z-index: 0;
+  }
+
+  .step-title {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .step-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* ── FEATURES ── */
+  .features-section {
+    margin-bottom: 56px;
+    animation: fadeInUp .8s ease-out .55s both;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  @media (min-width: 640px) {
+    .features-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .feature-card {
+    display: block;
+    padding: 20px;
+    border-radius: 14px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(10,15,26,.6);
+    backdrop-filter: blur(12px);
+    transition: all .25s cubic-bezier(.4,0,.2,1);
+    text-decoration: none;
+    color: inherit;
+    cursor: default;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 12px 40px rgba(0,255,157,.1);
+  }
+
+  .feature-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    font-size: 24px;
+  }
+
+  .feature-title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+
+  .feature-desc {
+    font-size: .85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* ── INTEGRATIONS ── */
+  .integrations-section {
+    margin-bottom: 56px;
+    animation: fadeInUp .8s ease-out .6s both;
+  }
+
+  .integrations-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .integration-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(10,15,26,.6);
+    backdrop-filter: blur(8px);
+    font-size: .85rem;
+    color: var(--text-secondary);
+    transition: all .25s cubic-bezier(.4,0,.2,1);
+    cursor: default;
+  }
+
+  .integration-pill:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,255,157,.12);
+  }
+
+  .integration-pill.primary {
+    border-color: var(--border-accent);
+    color: var(--accent);
+    background: rgba(0,255,157,.05);
+  }
+
+  .integration-pill svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .integration-pill.planned {
+    border-style: dashed;
+    opacity: .6;
+  }
+
+  /* ── DEMO ── */
+  .demo-section {
+    margin-bottom: 56px;
+    animation: fadeInUp .8s ease-out .65s both;
+    text-align: center;
+  }
+
+  .demo-video-container {
+    max-width: 800px;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    transition: border-color .3s;
+  }
+
+  .demo-video-container:hover {
+    border-color: var(--accent-dim);
+  }
+
+  .demo-video {
+    width: 100%;
+    display: block;
+    border-radius: 11px;
+  }
+
+  /* ── COMMUNITY CARDS ── */
+  .community-section {
+    margin-bottom: 56px;
+    animation: fadeInUp .8s ease-out .7s both;
+  }
+
+  .community-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  @media (min-width: 640px) {
+    .community-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .community-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(10,15,26,.6);
+    backdrop-filter: blur(12px);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all .25s cubic-bezier(.4,0,.2,1);
+  }
+
+  .community-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 12px 40px rgba(0,255,157,.1);
+  }
+
+  .community-card .card-icon {
+    font-size: 28px;
+    color: var(--accent);
+    transition: transform .25s ease;
+  }
+
+  .community-card:hover .card-icon {
+    transform: scale(1.1);
+  }
+
+  .community-card .card-label {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .community-card .card-sub {
+    font-size: .8rem;
+    color: var(--text-muted);
+  }
+
+  /* discord specific hover */
+  .community-card.discord-card:hover {
+    border-color: #5865f2;
+    box-shadow: 0 12px 40px rgba(88,101,242,.2);
+  }
+  .community-card.discord-card:hover .card-icon { color: #5865f2; }
+
+  /* ── GLOW LINE ── */
+  .glow-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: .3;
+    margin: 0 auto 56px;
+    max-width: 600px;
+  }
+
+  /* ── API CODE SAMPLE ── */
+  .code-sample {
+    max-width: 680px;
+    margin: 24px auto 0;
+    background: var(--bg-terminal);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 20px 24px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.8;
+    overflow-x: auto;
+  }
+
+  .code-sample .kw { color: var(--cyan); }
+  .code-sample .str { color: var(--accent); }
+  .code-sample .fn { color: var(--yellow); }
+  .code-sample .cm { color: var(--text-muted); }
+
+  /* ── FOOTER ── */
+  .footer {
+    margin-top: auto;
+    padding-top: 40px;
+    text-align: center;
+    font-size: .9rem;
+    color: var(--text-muted);
+    animation: fadeInUp .8s ease-out .75s both;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .footer-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    font-size: .95rem;
+  }
+
+  .footer-separator {
+    color: var(--text-muted);
+  }
+
+  .footer a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: color .2s ease;
+  }
+
+  .footer a:hover { color: var(--cyan); }
+
+  .footer .disclaimer {
+    margin-top: 12px;
+    font-size: .8rem;
+    color: var(--text-muted);
+    opacity: .7;
+  }
+
+  .footer .logo-footer {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .problem-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .domains {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .domain-connector {
+      transform: rotate(90deg);
+      padding: 4px 0;
+    }
+
+    .pipeline-steps {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .pipeline-step::after { display: none !important; }
+  }
+
+  @media (max-width: 480px) {
+    .container { padding: 40px 16px 32px; }
+
+    .logo-stage {
+      width: 140px;
+      height: 140px;
+    }
+
+    .logo-stage svg {
+      width: 110px;
+      height: 110px;
+    }
+
+    .cta { padding: 20px 12px; }
+    .cta-label { font-size: .9rem; }
+
+    .testimonials {
+      margin-left: -16px;
+      margin-right: -16px;
+      padding: 0 16px;
+    }
+
+    .testimonials-track {
+      margin-left: -16px;
+      margin-right: -16px;
+    }
+
+    .testimonial-card {
+      min-width: 280px;
+      max-width: 320px;
+      padding: 12px;
+    }
+
+    .code-content {
+      padding: 12px 14px;
+      font-size: .75rem;
+    }
+  }
+
+  /* ── REDUCED MOTION ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* ── FOCUS VISIBLE ── */
+  :focus-visible {
+    outline: 3px solid var(--cyan);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+
+  /* ── SR ONLY ── */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- Stars & Nebula background -->
+<div class="stars"></div>
+<div class="nebula"></div>
+
+<div class="container">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="logo-stage" id="logoStage">
+      <div class="logo-float">
+        <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g class="bracket-outer">
+            <path d="M18 12C12 12 8 16 8 22V50C8 56 12 60 18 60" stroke="#00ff9d" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M54 12C60 12 64 16 64 22V50C64 56 60 60 54 60" stroke="#00ff9d" stroke-width="2.5" stroke-linecap="round"/>
+          </g>
+          <g class="bracket-mid">
+            <path d="M24 18C20 18 17 21 17 25V47C17 51 20 54 24 54" stroke="#00ff9d" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M48 18C52 18 55 21 55 25V47C55 51 52 54 48 54" stroke="#00ff9d" stroke-width="2.5" stroke-linecap="round"/>
+          </g>
+          <g class="bracket-inner">
+            <path d="M30 24C28 24 26 26 26 28V44C26 46 28 48 30 48" stroke="#00ff9d" stroke-width="3" stroke-linecap="round"/>
+            <path d="M42 24C44 24 46 26 46 28V44C46 46 44 48 42 48" stroke="#00ff9d" stroke-width="3" stroke-linecap="round"/>
+          </g>
+          <circle cx="36" cy="36" r="3" fill="#00ff9d" class="core-dot"/>
+        </svg>
+      </div>
+      <div class="scan-line"></div>
+      <div class="ripple-ring" id="ripple1"></div>
+      <div class="ripple-ring" id="ripple2"></div>
+      <div class="shield-flash" id="shieldFlash"></div>
+      <div class="status-text" id="statusText"></div>
+    </div>
+
+    <h1 class="title">
+      <span class="title-main">Clavion</span>
+    </h1>
+
+    <p class="tagline">Secure Runtime for Autonomous Agents</p>
+
+    <p class="description">
+      Keys never leave the trusted core. Policy enforced. Human-approved execution.<br>
+      Clavion is the <strong>security runtime</strong> that protects blockchain automation.
+    </p>
+
+    <div class="alpha-badge">
+      <span class="alpha-icon">🧪</span>
+      Developer Alpha — Open Source
+    </div>
+  </section>
+
+  <!-- LATEST POST BADGE -->
+  <div class="latest-post">
+    <a href="https://docs.clavion.xyz" target="_blank" class="latest-post-card">
+      <span class="latest-post-badge">NEW</span>
+      <span class="latest-post-title">Clavion Documentation is live</span>
+      <span class="latest-post-link">→</span>
+    </a>
+  </div>
+
+  <!-- CTA GRID -->
+  <div class="cta-grid">
+    <a href="#get-started" class="cta">
+      <svg class="cta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      <span class="cta-label">Get Started</span>
+      <span class="cta-sub">Install in one line</span>
+    </a>
+    <span class="cta cta-discord" style="opacity: 0.4; cursor: default;">
+      <svg class="cta-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.369-.444.85-.608 1.23a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.093-.32 13.555.099 17.961a.08.08 0 0 0 .031.055 20.03 20.03 0 0 0 5.993 2.98.078.078 0 0 0 .084-.026 13.83 13.83 0 0 0 1.226-1.963.074.074 0 0 0-.041-.104 13.175 13.175 0 0 1-1.872-.878.075.075 0 0 1-.008-.125c.126-.093.252-.19.372-.287a.075.075 0 0 1 .078-.01c3.927 1.764 8.18 1.764 12.061 0a.075.075 0 0 1 .079.009c.12.098.245.195.372.288a.075.075 0 0 1-.006.125c-.598.344-1.22.635-1.873.877a.075.075 0 0 0-.041.105c.36.687.772 1.341 1.225 1.962a.077.077 0 0 0 .084.028 19.963 19.963 0 0 0 6.002-2.981.076.076 0 0 0 .032-.054c.5-5.094-.838-9.52-3.549-13.442a.06.06 0 0 0-.031-.028ZM8.02 15.278c-1.182 0-2.157-1.069-2.157-2.38 0-1.312.956-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.956 2.38-2.157 2.38Zm7.975 0c-1.183 0-2.157-1.069-2.157-2.38 0-1.312.955-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.946 2.38-2.157 2.38Z"/></svg>
+      <span class="cta-label">Discord</span>
+      <span class="cta-sub">Coming soon</span>
+    </span>
+    <a href="https://docs.clavion.xyz" target="_blank" class="cta cta-docs">
+      <svg class="cta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span class="cta-label">Docs</span>
+      <span class="cta-sub">Learn the ropes</span>
+    </a>
+    <a href="https://github.com/clavion-xyz/clavion" target="_blank" class="cta cta-github">
+      <svg class="cta-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span class="cta-label">GitHub</span>
+      <span class="cta-sub">View the source</span>
+    </a>
+  </div>
+
+  <!-- WHAT YOU CAN VERIFY -->
+  <section class="testimonials">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span class="claw-accent">⟩</span> What You Can Verify
+      </h2>
+    </div>
+
+    <p class="verify-intro">
+      Clavion is designed to be inspected, tested, and reproduced.<br>
+      Every claim about security and execution can be verified directly.
+    </p>
+
+    <div class="testimonials-track">
+      <!-- Row 1: scrolls left -->
+      <div class="testimonials-row row-1">
+        <div class="testimonial-card">
+          <div class="testimonial-icon">📂</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Open source runtime</span>
+            <p class="testimonial-desc">The full core runtime is available on GitHub, including signing logic and adapters.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">🔐</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Local key isolation</span>
+            <p class="testimonial-desc">Private keys never leave the trusted core process.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">📋</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Typed transaction intents</span>
+            <p class="testimonial-desc">Agents express structured intents instead of raw transactions.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">🛡</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Policy enforcement layer</span>
+            <p class="testimonial-desc">Every action is evaluated against explicit security policies.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">🔬</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Preflight simulation</span>
+            <p class="testimonial-desc">Transactions are simulated before signing and broadcasting.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">👤</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Human approval flow</span>
+            <p class="testimonial-desc">Critical actions require explicit confirmation via CLI, web dashboard, or Telegram.</p>
+          </div>
+        </div>
+        <!-- Duplicate for seamless loop -->
+        <div class="testimonial-card">
+          <div class="testimonial-icon">📂</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Open source runtime</span>
+            <p class="testimonial-desc">The full core runtime is available on GitHub, including signing logic and adapters.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">🔐</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Local key isolation</span>
+            <p class="testimonial-desc">Private keys never leave the trusted core process.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">📋</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Typed transaction intents</span>
+            <p class="testimonial-desc">Agents express structured intents instead of raw transactions.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">🛡</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Policy enforcement layer</span>
+            <p class="testimonial-desc">Every action is evaluated against explicit security policies.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">🔬</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Preflight simulation</span>
+            <p class="testimonial-desc">Transactions are simulated before signing and broadcasting.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">👤</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Human approval flow</span>
+            <p class="testimonial-desc">Critical actions require explicit confirmation via CLI, web dashboard, or Telegram.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: scrolls right -->
+      <div class="testimonials-row row-2">
+        <div class="testimonial-card">
+          <div class="testimonial-icon">📊</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Audit timeline</span>
+            <p class="testimonial-desc">Every execution step is recorded and traceable.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">📦</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Sandboxed skill execution</span>
+            <p class="testimonial-desc">Untrusted code runs in a constrained environment.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">▶</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Reproducible demo scripts</span>
+            <p class="testimonial-desc">End-to-end demos can be executed locally.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">🧪</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">639 automated tests</span>
+            <p class="testimonial-desc">Isolation, policy, and security guarantees validated by comprehensive test suite.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">🔌</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">MCP, ElizaOS, Telegram adapters</span>
+            <p class="testimonial-desc">Ready-made integrations for Claude Desktop, ElizaOS agents, and Telegram bots.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">🐙</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">OpenClaw compatibility</span>
+            <p class="testimonial-desc">Clavion integrates with OpenClaw agents out of the box.</p>
+          </div>
+        </div>
+        <!-- Duplicate for seamless loop -->
+        <div class="testimonial-card">
+          <div class="testimonial-icon">📊</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Audit timeline</span>
+            <p class="testimonial-desc">Every execution step is recorded and traceable.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">📦</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Sandboxed skill execution</span>
+            <p class="testimonial-desc">Untrusted code runs in a constrained environment.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">▶</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">Reproducible demo scripts</span>
+            <p class="testimonial-desc">End-to-end demos can be executed locally.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">🧪</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">639 automated tests</span>
+            <p class="testimonial-desc">Isolation, policy, and security guarantees validated by comprehensive test suite.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">🔌</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">MCP, ElizaOS, Telegram adapters</span>
+            <p class="testimonial-desc">Ready-made integrations for Claude Desktop, ElizaOS agents, and Telegram bots.</p>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-icon">🐙</div>
+          <div class="testimonial-content">
+            <span class="testimonial-title">OpenClaw compatibility</span>
+            <p class="testimonial-desc">Clavion integrates with OpenClaw agents out of the box.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="verify-outro">
+      Security infrastructure should be auditable by design.<br>
+      Inspect the system and verify the guarantees yourself.
+    </p>
+  </section>
+
+  <!-- QUICK START -->
+  <section class="quickstart" id="get-started">
+    <h2 class="section-title">
+      <span class="claw-accent">⟩</span> Quick Start
+    </h2>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dot"></div>
+        <div class="code-dot"></div>
+        <div class="code-dot"></div>
+        <span class="code-title">bash — clavion</span>
+      </div>
+      <div class="code-content">
+        <div class="code-line comment"># Install Clavion — one line, done</div>
+        <div class="code-line cmd">
+          <span class="code-prompt">$ </span>
+          <span>curl <span class="code-flag">-fsSL</span> https://clavion.xyz/install.sh | bash</span>
+          <button class="copy-line-btn" data-cmd="curl -fsSL https://clavion.xyz/install.sh | bash" aria-label="Copy command">
+            <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+        </div>
+        <div class="code-line comment" style="margin-top: 8px"># Or with Docker</div>
+        <div class="code-line cmd">
+          <span class="code-prompt">$ </span>
+          <span>docker compose up <span class="code-flag">-d</span> clavion</span>
+          <button class="copy-line-btn" data-cmd="docker compose up -d clavion" aria-label="Copy command">
+            <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <p class="quickstart-note">Works on macOS, Windows & Linux. The one-liner installs everything for you.</p>
+  </section>
+
+  <!-- PROBLEM -->
+  <section class="problem-section">
+    <h2 class="section-title">
+      <span class="claw-accent">⟩</span> The Problem
+    </h2>
+    <div class="problem-grid">
+      <div class="problem-text">
+        <h3>AI agents are starting to control real money.</h3>
+        <p>Autonomous agents can now trade tokens, bridge assets, and manage DeFi positions. But they hold raw private keys with zero security boundaries.</p>
+        <p>A single bug, hallucination, or malicious plugin can drain a wallet instantly. No approval. No audit trail. No way back.</p>
+        <ul class="threat-list">
+          <li>Agent has direct wallet access — full signing privileges</li>
+          <li>No transaction review before broadcast</li>
+          <li>No policy enforcement or spend limits</li>
+          <li>No human oversight for high-risk operations</li>
+          <li>No audit trail or forensic visibility</li>
+        </ul>
+      </div>
+      <div class="problem-visual">
+        <div class="vis-title">⚠ Typical Agent Setup (Unsafe)</div>
+        <div class="unsafe-flow">
+          <div class="node">🤖 AI Agent</div>
+          <div class="arrow">↓ direct access to keys</div>
+          <div class="node danger">🔑 Private Key (exposed)</div>
+          <div class="arrow">↓ unreviewed tx</div>
+          <div class="node">⛓ Blockchain</div>
+          <div class="warning-box">One bad call → funds gone forever</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="glow-line"></div>
+
+  <!-- SOLUTION: THREE TRUST DOMAINS -->
+  <section class="solution-section" id="how-it-works">
+    <h2 class="section-title" style="justify-content: center;">
+      <span class="claw-accent">⟩</span> Three Trust Domains
+    </h2>
+    <p class="solution-intro">Clavion separates agent logic from key material. Agents express typed intents — Clavion handles the rest.</p>
+
+    <div class="domains">
+      <div class="domain">
+        <div class="domain-label untrusted">Untrusted Zone</div>
+        <h3>🤖 Agent Logic</h3>
+        <p>Your agent framework — OpenClaw, MCP (Claude Desktop), ElizaOS, Telegram bots, or any HTTP client. Submits typed transaction intents. Never sees keys.</p>
+      </div>
+
+      <div class="domain-connector">→</div>
+
+      <div class="domain" style="border-color: rgba(0,255,157,0.2); background: rgba(0,255,157,0.02);">
+        <div class="domain-label secure">Trusted Core</div>
+        <h3>🛡 Clavion Runtime</h3>
+        <p>Policy enforcement. Preflight simulation. Risk scoring. Human approval workflows. Encrypted keystore. Full audit trail.</p>
+      </div>
+
+      <div class="domain-connector">→</div>
+
+      <div class="domain">
+        <div class="domain-label external">External</div>
+        <h3>⛓ Blockchain</h3>
+        <p>Only verified, approved, and signed transactions reach the chain. Simulation-checked before broadcast.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PIPELINE -->
+  <section class="pipeline-section">
+    <h2 class="section-title" style="justify-content: center;">
+      <span class="claw-accent">⟩</span> Five Steps to Safe Execution
+    </h2>
+
+    <div class="pipeline-steps">
+      <div class="pipeline-step">
+        <div class="num">1</div>
+        <div class="step-title">Intent</div>
+        <div class="step-desc">Agent defines what it wants to do as a typed intent</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="num">2</div>
+        <div class="step-title">Policy</div>
+        <div class="step-desc">Rules engine checks spend limits, allowed targets, time windows</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="num">3</div>
+        <div class="step-title">Preflight</div>
+        <div class="step-desc">Transaction simulated, risk scored, outcome predicted</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="num">4</div>
+        <div class="step-title">Approval</div>
+        <div class="step-desc">Human confirms or rejects via CLI, web dashboard, or Telegram</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="num">5</div>
+        <div class="step-title">Sign & Send</div>
+        <div class="step-desc">Clavion signs with local encrypted key and broadcasts</div>
+      </div>
+    </div>
+
+    <!-- Code sample -->
+    <div class="code-sample">
+      <span class="cm"># Build a transfer intent — agent never touches the key</span><br>
+      <span class="fn">curl</span> <span class="str">http://localhost:3100/v1/tx/build</span> \<br>
+      &nbsp;&nbsp;-H <span class="str">"Content-Type: application/json"</span> \<br>
+      &nbsp;&nbsp;-d '<span class="str">{
+  "version": "1",
+  "id": "a1b2c3d4-...",
+  "timestamp": 1700000000,
+  "chain": { "type": "evm", "chainId": 8453 },
+  "wallet": { "address": "0xYOUR_WALLET" },
+  "action": {
+    "type": "transfer",
+    "asset": {
+      "kind": "erc20",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "symbol": "USDC", "decimals": 6
+    },
+    "to": "0xRECIPIENT", "amount": "1000000"
+  },
+  "constraints": {
+    "maxGasWei": "1000000000000000",
+    "deadline": 1700000600
+  }
+}</span>'<br>
+      <br>
+      <span class="cm"># Response: buildPlan, policyDecision, description</span><br>
+      <span class="cm"># → if policy says require_approval, user is prompted</span>
+    </div>
+  </section>
+
+  <div class="glow-line"></div>
+
+  <!-- FEATURES -->
+  <section class="features-section" id="features">
+    <h2 class="section-title">
+      <span class="claw-accent">⟩</span> What It Does
+    </h2>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <div class="feature-title">Encrypted Keystore</div>
+        <div class="feature-desc">Keys encrypted at rest (scrypt + AES-256-GCM) and never exposed to agent processes. Import via private key or BIP-39 mnemonic.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <div class="feature-title">Policy Engine</div>
+        <div class="feature-desc">Configurable rules: spend limits, allowed contracts, chain allowlists, rate limiting, per-agent permissions.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔬</div>
+        <div class="feature-title">Preflight Simulation</div>
+        <div class="feature-desc">Every transaction simulated before signing. Risk scored across 7 rules. Outcome predicted. No surprises.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👤</div>
+        <div class="feature-title">Human Approval</div>
+        <div class="feature-desc">Approval flows via CLI, web dashboard, or Telegram bot. Auto-approve low-risk, sign-off for high-risk.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Audit Trail</div>
+        <div class="feature-desc">Every intent, policy decision, simulation, approval, and broadcast logged with timestamps in append-only SQLite.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔌</div>
+        <div class="feature-title">Agent Agnostic</div>
+        <div class="feature-desc">Adapters for OpenClaw, MCP (Claude Desktop/Cursor), ElizaOS, and Telegram. REST API for any framework.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⛓</div>
+        <div class="feature-title">Multi-Chain</div>
+        <div class="feature-desc">Supports Ethereum, Base, Optimism, and Arbitrum. Per-chain RPC routing and policy configuration.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <div class="feature-title">DEX Aggregation</div>
+        <div class="feature-desc">Swaps via 1inch aggregator for best rates across DEXs, with automatic Uniswap V3 fallback.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <div class="feature-title">Skill Registry</div>
+        <div class="feature-desc">Register, verify, and manage skill manifests with ECDSA signing, file hashing, and static code analysis.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTEGRATIONS -->
+  <section class="integrations-section">
+    <h2 class="section-title" style="justify-content: center;">
+      <span class="claw-accent">⟩</span> Works With Everything
+    </h2>
+
+    <div class="integrations-row">
+      <span class="integration-pill primary">🐙 OpenClaw</span>
+      <span class="integration-pill primary">🔧 MCP / Claude Desktop</span>
+      <span class="integration-pill primary">🧠 ElizaOS</span>
+      <span class="integration-pill primary">💬 Telegram Bot</span>
+      <span class="integration-pill">🔗 Custom REST API</span>
+    </div>
+    <div class="integrations-row">
+      <span class="integration-pill">◆ Ethereum</span>
+      <span class="integration-pill">🔵 Base</span>
+      <span class="integration-pill">🔴 Optimism</span>
+      <span class="integration-pill">🔷 Arbitrum</span>
+      <span class="integration-pill">🦄 Uniswap V3</span>
+      <span class="integration-pill">🔀 1inch Aggregator</span>
+    </div>
+  </section>
+
+  <!-- DEMO -->
+  <section class="demo-section" id="demo">
+    <h2 class="section-title" style="justify-content: center;">
+      <span class="claw-accent">⟩</span> See It in Action
+    </h2>
+    <div class="demo-video-container">
+      <video
+        class="demo-video"
+        poster="/assets/demo-poster.jpg"
+        preload="metadata"
+        controls
+        playsinline
+      >
+        <source src="/assets/clavion-demo.mp4" type="video/mp4" />
+      </video>
+    </div>
+  </section>
+
+  <div class="glow-line"></div>
+
+  <!-- COMMUNITY -->
+  <section class="community-section">
+    <h2 class="section-title" style="justify-content: center;">
+      <span class="claw-accent">⟩</span> Community
+    </h2>
+
+    <div class="community-grid">
+      <span class="community-card discord-card" style="opacity: 0.4; cursor: default;">
+        <span class="card-icon">💬</span>
+        <span class="card-label">Discord</span>
+        <span class="card-sub">Coming soon</span>
+      </span>
+      <a href="https://docs.clavion.xyz" target="_blank" class="community-card">
+        <span class="card-icon">📖</span>
+        <span class="card-label">Documentation</span>
+        <span class="card-sub">Learn the ropes</span>
+      </a>
+      <a href="https://github.com/clavion-xyz/clavion" target="_blank" class="community-card">
+        <span class="card-icon">⌨</span>
+        <span class="card-label">GitHub</span>
+        <span class="card-sub">View the source</span>
+      </a>
+      <a href="https://twitter.com/clavion_xyz" target="_blank" class="community-card">
+        <span class="card-icon">𝕏</span>
+        <span class="card-label">Twitter</span>
+        <span class="card-sub">Follow updates</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-nav">
+      <a href="https://docs.clavion.xyz">Docs</a>
+      <span class="footer-separator">·</span>
+      <a href="https://github.com/clavion-xyz/clavion">GitHub</a>
+      <span class="footer-separator">·</span>
+      <span style="opacity: 0.4;">Discord</span>
+      <span class="footer-separator">·</span>
+      <a href="https://twitter.com/clavion_xyz">Twitter</a>
+    </div>
+    <p>
+      <a href="#" class="logo-footer"><svg style="display:inline-block;vertical-align:middle;margin-right:6px;" width="20" height="20" viewBox="0 0 72 72" fill="none"><path d="M18 12C12 12 8 16 8 22V50C8 56 12 60 18 60" stroke="#00ff9d" stroke-width="3.5" stroke-linecap="round" opacity="0.25"/><path d="M54 12C60 12 64 16 64 22V50C64 56 60 60 54 60" stroke="#00ff9d" stroke-width="3.5" stroke-linecap="round" opacity="0.25"/><path d="M24 18C20 18 17 21 17 25V47C17 51 20 54 24 54" stroke="#00ff9d" stroke-width="3.5" stroke-linecap="round" opacity="0.55"/><path d="M48 18C52 18 55 21 55 25V47C55 51 52 54 48 54" stroke="#00ff9d" stroke-width="3.5" stroke-linecap="round" opacity="0.55"/><path d="M30 24C28 24 26 26 26 28V44C26 46 28 48 30 48" stroke="#00ff9d" stroke-width="4" stroke-linecap="round"/><path d="M42 24C44 24 46 26 46 28V44C46 46 44 48 42 48" stroke="#00ff9d" stroke-width="4" stroke-linecap="round"/><circle cx="36" cy="36" r="4" fill="#00ff9d"/></svg>clavion</a>
+    </p>
+    <p style="margin-top: 12px; color: var(--text-secondary);">
+      The secure execution layer for autonomous blockchain agents.
+    </p>
+    <p class="disclaimer">
+      Open source. Independent project. Not affiliated with OpenClaw or Anthropic.
+    </p>
+  </footer>
+
+</div>
+
+<!-- SCRIPTS -->
+<script>
+  // Copy button functionality
+  document.querySelectorAll('.copy-line-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const cmd = btn.dataset.cmd;
+      const copyIcon = btn.querySelector('.copy-icon');
+      const checkIcon = btn.querySelector('.check-icon');
+      try {
+        await navigator.clipboard.writeText(cmd);
+        btn.classList.add('copied');
+        copyIcon.style.display = 'none';
+        checkIcon.style.display = 'block';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          copyIcon.style.display = 'block';
+          checkIcon.style.display = 'none';
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    });
+  });
+
+  // Logo click interaction — ripple + flash + status messages
+  const statusMessages = [
+    '\u2713 transaction verified',
+    '\u2713 policy check passed',
+    '\u2713 keys secure',
+    '\u2713 preflight complete',
+    '\u2713 intent approved',
+    '\u2717 blocked: exceeds limit',
+    '\u2713 signed & broadcast',
+  ];
+  let msgIndex = 0;
+
+  document.getElementById('logoStage').addEventListener('click', () => {
+    const r1 = document.getElementById('ripple1');
+    const r2 = document.getElementById('ripple2');
+    const sf = document.getElementById('shieldFlash');
+    const st = document.getElementById('statusText');
+
+    [r1, r2, sf, st].forEach(el => {
+      el.classList.remove('animate');
+      void el.offsetWidth;
+    });
+
+    r1.classList.add('animate');
+    setTimeout(() => r2.classList.add('animate'), 150);
+    sf.classList.add('animate');
+
+    st.textContent = statusMessages[msgIndex % statusMessages.length];
+    st.style.color = st.textContent.startsWith('\u2717') ? '#ff4444' : '#00ff9d';
+    st.classList.add('animate');
+    msgIndex++;
+  });
+
+  // Logo hover — tagline swap
+  const logoStage = document.getElementById('logoStage');
+  const tagline = document.querySelector('.tagline');
+  const originalTagline = tagline.textContent;
+  let animating = false;
+
+  logoStage.addEventListener('mouseenter', () => {
+    if (animating) return;
+    animating = true;
+    tagline.style.transition = 'opacity 0.2s ease';
+    tagline.style.opacity = '0';
+    setTimeout(() => {
+      tagline.textContent = 'YOUR KEYS. YOUR RULES.';
+      tagline.style.color = 'var(--cyan)';
+      tagline.style.opacity = '1';
+    }, 200);
+    setTimeout(() => {
+      tagline.style.opacity = '0';
+      setTimeout(() => {
+        tagline.textContent = originalTagline;
+        tagline.style.color = '';
+        tagline.style.opacity = '1';
+        animating = false;
+      }, 200);
+    }, 2000);
+  });
+</script>
+
+</body>
+</html>
